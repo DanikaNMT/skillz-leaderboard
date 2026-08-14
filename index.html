@@ -247,6 +247,84 @@
   }
   .remove-btn:hover{color:var(--red); border-color:#FFC2C8; background:#FFE3E6;}
 
+  .edit-btn{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:10px;
+    border:2px solid var(--border);
+    background:var(--surface);
+    color:var(--text-dim);
+    font-size:15px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:4px;
+    transition:color .12s, border-color .12s, background .12s;
+  }
+  .edit-btn:hover{color:var(--blue); border-color:#BFE0FB; background:var(--blue-pale);}
+
+  .edit-fields{
+    flex:1 1 auto;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    min-width:180px;
+  }
+  .edit-fields input{
+    background:var(--blue-pale);
+    border:2px solid var(--border);
+    color:var(--text);
+    border-radius:10px;
+    padding:9px 12px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    outline:none;
+  }
+  .edit-fields input:focus{border-color:var(--blue-bright);}
+  .edit-name-input{flex:1 1 120px; min-width:110px;}
+  .edit-score-input{flex:0 1 120px; min-width:100px;}
+
+  .save-btn, .cancel-btn{
+    flex:0 0 auto;
+    border:none;
+    border-radius:10px;
+    padding:9px 14px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .save-btn{background:var(--green); color:#FFFFFF;}
+  .save-btn:hover{background:#28A863;}
+  .cancel-btn{background:var(--blue-pale); color:var(--text-dim); border:2px solid var(--border);}
+  .cancel-btn:hover{background:#E3EEFA;}
+
+  .reset-btn{
+    position:absolute;
+    top:32px;
+    right:20px;
+    background:var(--surface);
+    color:var(--red);
+    border:2px solid #FFD3D8;
+    border-radius:12px;
+    padding:9px 16px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    box-shadow:0 3px 0 #FFD3D8;
+    transition:background .12s, transform .08s, box-shadow .08s;
+  }
+  .reset-btn:hover{background:#FFE3E6;}
+  .reset-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #FFD3D8;}
+  .page{position:relative;}
+  @media (max-width:640px){
+    .reset-btn{position:static; display:block; margin:0 auto 20px; }
+  }
+
   @media (max-width:640px){
     header h1{font-size:32px;}
     .row{flex-wrap:wrap;}
@@ -263,6 +341,7 @@
     </div>
     <h1>Ranglijst</h1>
     <p class="subtitle">Live klassement</p>
+    <button class="reset-btn" id="resetBtn">Reset alles</button>
   </header>
 
   <div class="add-card">
@@ -279,6 +358,30 @@
   var players = [];
   var nextId = 1;
   var pointValues = [10000, 100, 5, 1];
+  var editingId = null;
+  var STORAGE_KEY = 'skillz-ranglijst-data';
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ players: players, nextId: nextId }));
+    }catch(e){
+      // browseropslag niet beschikbaar in deze omgeving; gegevens blijven enkel bewaard tijdens dit tabblad
+    }
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      var data = JSON.parse(raw);
+      if(data && Array.isArray(data.players)){
+        players = data.players;
+        nextId = data.nextId || (players.reduce(function(m,p){ return Math.max(m, p.id); }, 0) + 1);
+      }
+    }catch(e){
+      // ongeldige of ontbrekende opgeslagen data, start leeg
+    }
+  }
 
   function fmt(n){
     return n.toLocaleString('nl-BE');
@@ -309,52 +412,99 @@
       badge.textContent = rank;
       row.appendChild(badge);
 
-      var info = document.createElement('div');
-      info.className = 'player-info';
-      var nameEl = document.createElement('div');
-      nameEl.className = 'player-name';
-      nameEl.textContent = p.name;
-      var scoreEl = document.createElement('div');
-      scoreEl.className = 'player-score';
-      scoreEl.id = 'score-' + p.id;
-      scoreEl.textContent = fmt(p.score);
-      info.appendChild(nameEl);
-      info.appendChild(scoreEl);
-      row.appendChild(info);
+      if(editingId === p.id){
+        var fields = document.createElement('div');
+        fields.className = 'edit-fields';
 
-      var groups = document.createElement('div');
-      groups.className = 'btn-groups';
+        var nameInput = document.createElement('input');
+        nameInput.className = 'edit-name-input';
+        nameInput.type = 'text';
+        nameInput.maxLength = 30;
+        nameInput.value = p.name;
 
-      var minusGrp = document.createElement('div');
-      minusGrp.className = 'grp';
-      pointValues.slice().reverse().forEach(function(v){
-        var b = document.createElement('button');
-        b.className = 'pbtn minus';
-        b.textContent = '-' + fmt(v);
-        b.addEventListener('click', function(){ adjustScore(p.id, -v); });
-        minusGrp.appendChild(b);
-      });
-      groups.appendChild(minusGrp);
+        var scoreInput = document.createElement('input');
+        scoreInput.className = 'edit-score-input';
+        scoreInput.type = 'number';
+        scoreInput.value = p.score;
 
-      var plusGrp = document.createElement('div');
-      plusGrp.className = 'grp';
-      pointValues.slice().reverse().forEach(function(v){
-        var b = document.createElement('button');
-        b.className = 'pbtn plus';
-        b.textContent = '+' + fmt(v);
-        b.addEventListener('click', function(){ adjustScore(p.id, v); });
-        plusGrp.appendChild(b);
-      });
-      groups.appendChild(plusGrp);
+        fields.appendChild(nameInput);
+        fields.appendChild(scoreInput);
+        row.appendChild(fields);
 
-      row.appendChild(groups);
+        var saveBtn = document.createElement('button');
+        saveBtn.className = 'save-btn';
+        saveBtn.textContent = 'Opslaan';
+        saveBtn.addEventListener('click', function(){ saveEdit(p.id, nameInput.value, scoreInput.value); });
+        row.appendChild(saveBtn);
 
-      var removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-btn';
-      removeBtn.setAttribute('aria-label', 'Kind verwijderen');
-      removeBtn.textContent = '\u00D7';
-      removeBtn.addEventListener('click', function(){ removePlayer(p.id); });
-      row.appendChild(removeBtn);
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.textContent = 'Annuleren';
+        cancelBtn.addEventListener('click', function(){ editingId = null; render(); });
+        row.appendChild(cancelBtn);
+
+        var submitOnEnter = function(e){
+          if(e.key === 'Enter') saveEdit(p.id, nameInput.value, scoreInput.value);
+          if(e.key === 'Escape'){ editingId = null; render(); }
+        };
+        nameInput.addEventListener('keydown', submitOnEnter);
+        scoreInput.addEventListener('keydown', submitOnEnter);
+        setTimeout(function(){ nameInput.focus(); nameInput.select(); }, 0);
+      } else {
+        var info = document.createElement('div');
+        info.className = 'player-info';
+        var nameEl = document.createElement('div');
+        nameEl.className = 'player-name';
+        nameEl.textContent = p.name;
+        var scoreEl = document.createElement('div');
+        scoreEl.className = 'player-score';
+        scoreEl.id = 'score-' + p.id;
+        scoreEl.textContent = fmt(p.score);
+        info.appendChild(nameEl);
+        info.appendChild(scoreEl);
+        row.appendChild(info);
+
+        var groups = document.createElement('div');
+        groups.className = 'btn-groups';
+
+        var minusGrp = document.createElement('div');
+        minusGrp.className = 'grp';
+        pointValues.slice().reverse().forEach(function(v){
+          var b = document.createElement('button');
+          b.className = 'pbtn minus';
+          b.textContent = '-' + fmt(v);
+          b.addEventListener('click', function(){ adjustScore(p.id, -v); });
+          minusGrp.appendChild(b);
+        });
+        groups.appendChild(minusGrp);
+
+        var plusGrp = document.createElement('div');
+        plusGrp.className = 'grp';
+        pointValues.slice().reverse().forEach(function(v){
+          var b = document.createElement('button');
+          b.className = 'pbtn plus';
+          b.textContent = '+' + fmt(v);
+          b.addEventListener('click', function(){ adjustScore(p.id, v); });
+          plusGrp.appendChild(b);
+        });
+        groups.appendChild(plusGrp);
+
+        row.appendChild(groups);
+
+        var editBtn = document.createElement('button');
+        editBtn.className = 'edit-btn';
+        editBtn.setAttribute('aria-label', 'Bewerken');
+        editBtn.textContent = '\u270E';
+        editBtn.addEventListener('click', function(){ editingId = p.id; render(); });
+        row.appendChild(editBtn);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Kind verwijderen');
+        removeBtn.textContent = '\u00D7';
+        removeBtn.addEventListener('click', function(){ removePlayer(p.id); });
+        row.appendChild(removeBtn);
+      }
 
       board.appendChild(row);
     });
@@ -364,6 +514,7 @@
     var p = players.find(function(pl){ return pl.id === id; });
     if(!p) return;
     p.score += delta;
+    saveState();
     render();
     var scoreEl = document.getElementById('score-' + id);
     if(scoreEl){
@@ -373,8 +524,26 @@
     }
   }
 
+  function saveEdit(id, name, score){
+    var p = players.find(function(pl){ return pl.id === id; });
+    if(!p) return;
+
+    var trimmedName = name.trim();
+    if(!trimmedName) trimmedName = p.name;
+
+    var parsedScore = parseInt(score, 10);
+    if(isNaN(parsedScore)) parsedScore = p.score;
+
+    p.name = trimmedName;
+    p.score = parsedScore;
+    editingId = null;
+    saveState();
+    render();
+  }
+
   function removePlayer(id){
     players = players.filter(function(p){ return p.id !== id; });
+    saveState();
     render();
   }
 
@@ -398,6 +567,7 @@
     nameInput.value = '';
     scoreInput.value = '0';
     nameInput.focus();
+    saveState();
     render();
   }
 
@@ -412,6 +582,17 @@
     document.getElementById('errorMsg').style.display = 'none';
   });
 
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(window.confirm('Weet je zeker dat je alle kinderen en scores wilt wissen?')){
+      players = [];
+      nextId = 1;
+      editingId = null;
+      saveState();
+      render();
+    }
+  });
+
+  loadState();
   render();
 </script>
 </body>
