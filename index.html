@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skillz Ranglijst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue-deep:#2B5797;
+    --blue:#1E88E5;
+    --blue-bright:#3FA0F0;
+    --blue-pale:#EAF4FE;
+    --bg-top:#DDEEFF;
+    --bg-bottom:#F5FAFF;
+    --surface:#FFFFFF;
+    --border:#D6E8FA;
+    --text:#1B3A5C;
+    --text-dim:#6B87A4;
+    --yellow:#FFC93C;
+    --silver:#B9C6D8;
+    --bronze:#E3985C;
+    --green:#2FBF71;
+    --red:#FF5C6C;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    padding:0;
+    background:linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 340px);
+    color:var(--text);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+  }
+  .page{
+    max-width:880px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:32px;
+  }
+  header .logo-wrap{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--surface);
+    border-radius:22px;
+    padding:14px 26px;
+    box-shadow:0 6px 0 var(--border), 0 8px 20px rgba(43,87,151,0.12);
+    margin-bottom:20px;
+  }
+  header img.logo{
+    height:38px;
+    display:block;
+  }
+  header h1{
+    font-family:'Fredoka',sans-serif;
+    font-weight:700;
+    font-size:42px;
+    letter-spacing:.5px;
+    margin:0;
+    color:var(--blue-deep);
+  }
+  header p.subtitle{
+    color:var(--text-dim);
+    font-weight:700;
+    font-size:15px;
+    margin:10px 0 0;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+  }
+
+  .add-card{
+    background:var(--surface);
+    border:2px solid var(--border);
+    border-radius:20px;
+    padding:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+    box-shadow:0 4px 0 var(--border);
+  }
+  .add-card input{
+    background:var(--blue-pale);
+    border:2px solid var(--border);
+    color:var(--text);
+    border-radius:12px;
+    padding:12px 14px;
+    font-family:'Nunito',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  .add-card input::placeholder{color:var(--text-dim); font-weight:600;}
+  .add-card input:focus{border-color:var(--blue-bright);}
+  #nameInput{flex:2;min-width:160px;}
+  #scoreInput{flex:1;min-width:110px;}
+  .add-btn{
+    flex:0 0 auto;
+    background:var(--blue);
+    color:#FFFFFF;
+    border:none;
+    border-radius:12px;
+    padding:12px 22px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:16px;
+    letter-spacing:.3px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    box-shadow:0 4px 0 var(--blue-deep);
+    transition:background .15s, transform .08s, box-shadow .08s;
+  }
+  .add-btn:hover{background:var(--blue-bright);}
+  .add-btn:active{transform:translateY(2px); box-shadow:0 2px 0 var(--blue-deep);}
+  .add-btn .plus{font-size:20px;line-height:1;}
+  .error-msg{
+    width:100%;
+    color:var(--red);
+    font-weight:700;
+    font-size:13px;
+    margin-top:-4px;
+    display:none;
+  }
+
+  .board{display:flex;flex-direction:column;gap:12px;}
+
+  .empty-state{
+    text-align:center;
+    color:var(--text-dim);
+    font-weight:700;
+    padding:60px 20px;
+    background:var(--surface);
+    border:2px dashed var(--border);
+    border-radius:20px;
+    font-size:15px;
+  }
+
+  .row{
+    background:var(--surface);
+    border:2px solid var(--border);
+    border-radius:18px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    box-shadow:0 3px 0 var(--border);
+  }
+  .row.rank-1{border-color:#FFE1A0; box-shadow:0 3px 0 #FFE1A0; background:linear-gradient(90deg, #FFF8E8, var(--surface) 35%);}
+  .row.rank-2{border-color:#DDE4EE; box-shadow:0 3px 0 #DDE4EE; background:linear-gradient(90deg, #F3F5F9, var(--surface) 35%);}
+  .row.rank-3{border-color:#F5D6B8; box-shadow:0 3px 0 #F5D6B8; background:linear-gradient(90deg, #FCF1E5, var(--surface) 35%);}
+
+  .rank-badge{
+    flex:0 0 auto;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:var(--blue-pale);
+    color:var(--blue-deep);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:18px;
+    border:2px solid var(--border);
+  }
+  .rank-1 .rank-badge{background:var(--yellow); color:#5A3D00; border-color:#F2B400;}
+  .rank-2 .rank-badge{background:var(--silver); color:#33445A; border-color:#A6B4C6;}
+  .rank-3 .rank-badge{background:var(--bronze); color:#4A2A0C; border-color:#CB7B3E;}
+
+  .player-info{
+    flex:0 0 auto;
+    min-width:120px;
+    max-width:180px;
+  }
+  .player-name{
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:18px;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .player-score{
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    color:var(--blue);
+    font-variant-numeric:tabular-nums;
+    transition:color .2s;
+  }
+  .player-score.flash-up{color:var(--green);}
+  .player-score.flash-down{color:var(--red);}
+
+  .btn-groups{
+    flex:1 1 auto;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .grp{display:flex;gap:4px;}
+  .pbtn{
+    border:2px solid var(--border);
+    background:var(--blue-pale);
+    color:var(--blue-deep);
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    border-radius:10px;
+    padding:7px 9px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .12s, color .12s, transform .08s, border-color .12s;
+  }
+  .pbtn.minus:hover{background:#FFE3E6; color:#C42F3D; border-color:#FFC2C8;}
+  .pbtn.plus:hover{background:#DEFBEA; color:#1E8F52; border-color:#B4F0CC;}
+  .pbtn:active{transform:scale(0.93);}
+
+  .remove-btn{
+    flex:0 0 auto;
+    width:32px;
+    height:32px;
+    border-radius:10px;
+    border:2px solid var(--border);
+    background:var(--surface);
+    color:var(--text-dim);
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:4px;
+    transition:color .12s, border-color .12s, background .12s;
+  }
+  .remove-btn:hover{color:var(--red); border-color:#FFC2C8; background:#FFE3E6;}
+
+  @media (max-width:640px){
+    header h1{font-size:32px;}
+    .row{flex-wrap:wrap;}
+    .btn-groups{justify-content:flex-start; width:100%;}
+    .player-info{max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="logo-wrap">
+      <img class="logo" src="https://skillz.be/assets/img/logo_skillz.svg" alt="Skillz logo">
+    </div>
+    <h1>Ranglijst</h1>
+    <p class="subtitle">Live klassement</p>
+  </header>
+
+  <div class="add-card">
+    <input id="nameInput" type="text" placeholder="Naam kind" maxlength="30">
+    <input id="scoreInput" type="number" placeholder="Startscore" value="0">
+    <button class="add-btn" id="addBtn"><span class="plus">+</span> Toevoegen</button>
+    <div class="error-msg" id="errorMsg">Vul de naam van een kind in.</div>
+  </div>
+
+  <div class="board" id="board"></div>
+</div>
+
+<script>
+  var players = [];
+  var nextId = 1;
+  var pointValues = [10000, 100, 5, 1];
+
+  function fmt(n){
+    return n.toLocaleString('nl-BE');
+  }
+
+  function render(){
+    var board = document.getElementById('board');
+    board.innerHTML = '';
+
+    if(players.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'Nog geen kinderen. Voeg hierboven een naam toe om te starten.';
+      board.appendChild(empty);
+      return;
+    }
+
+    var sorted = players.slice().sort(function(a,b){ return b.score - a.score; });
+
+    sorted.forEach(function(p, idx){
+      var rank = idx + 1;
+      var row = document.createElement('div');
+      row.className = 'row rank-' + rank;
+      row.dataset.id = p.id;
+
+      var badge = document.createElement('div');
+      badge.className = 'rank-badge';
+      badge.textContent = rank;
+      row.appendChild(badge);
+
+      var info = document.createElement('div');
+      info.className = 'player-info';
+      var nameEl = document.createElement('div');
+      nameEl.className = 'player-name';
+      nameEl.textContent = p.name;
+      var scoreEl = document.createElement('div');
+      scoreEl.className = 'player-score';
+      scoreEl.id = 'score-' + p.id;
+      scoreEl.textContent = fmt(p.score);
+      info.appendChild(nameEl);
+      info.appendChild(scoreEl);
+      row.appendChild(info);
+
+      var groups = document.createElement('div');
+      groups.className = 'btn-groups';
+
+      var minusGrp = document.createElement('div');
+      minusGrp.className = 'grp';
+      pointValues.slice().reverse().forEach(function(v){
+        var b = document.createElement('button');
+        b.className = 'pbtn minus';
+        b.textContent = '-' + fmt(v);
+        b.addEventListener('click', function(){ adjustScore(p.id, -v); });
+        minusGrp.appendChild(b);
+      });
+      groups.appendChild(minusGrp);
+
+      var plusGrp = document.createElement('div');
+      plusGrp.className = 'grp';
+      pointValues.slice().reverse().forEach(function(v){
+        var b = document.createElement('button');
+        b.className = 'pbtn plus';
+        b.textContent = '+' + fmt(v);
+        b.addEventListener('click', function(){ adjustScore(p.id, v); });
+        plusGrp.appendChild(b);
+      });
+      groups.appendChild(plusGrp);
+
+      row.appendChild(groups);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.setAttribute('aria-label', 'Kind verwijderen');
+      removeBtn.textContent = '\u00D7';
+      removeBtn.addEventListener('click', function(){ removePlayer(p.id); });
+      row.appendChild(removeBtn);
+
+      board.appendChild(row);
+    });
+  }
+
+  function adjustScore(id, delta){
+    var p = players.find(function(pl){ return pl.id === id; });
+    if(!p) return;
+    p.score += delta;
+    render();
+    var scoreEl = document.getElementById('score-' + id);
+    if(scoreEl){
+      var cls = delta > 0 ? 'flash-up' : 'flash-down';
+      scoreEl.classList.add(cls);
+      setTimeout(function(){ scoreEl.classList.remove(cls); }, 400);
+    }
+  }
+
+  function removePlayer(id){
+    players = players.filter(function(p){ return p.id !== id; });
+    render();
+  }
+
+  function addPlayer(){
+    var nameInput = document.getElementById('nameInput');
+    var scoreInput = document.getElementById('scoreInput');
+    var errorMsg = document.getElementById('errorMsg');
+    var name = nameInput.value.trim();
+
+    if(!name){
+      errorMsg.style.display = 'block';
+      nameInput.focus();
+      return;
+    }
+    errorMsg.style.display = 'none';
+
+    var score = parseInt(scoreInput.value, 10);
+    if(isNaN(score)) score = 0;
+
+    players.push({ id: nextId++, name: name, score: score });
+    nameInput.value = '';
+    scoreInput.value = '0';
+    nameInput.focus();
+    render();
+  }
+
+  document.getElementById('addBtn').addEventListener('click', addPlayer);
+  document.getElementById('nameInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') addPlayer();
+  });
+  document.getElementById('scoreInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') addPlayer();
+  });
+  document.getElementById('nameInput').addEventListener('input', function(){
+    document.getElementById('errorMsg').style.display = 'none';
+  });
+
+  render();
+</script>
+</body>
+</html>
