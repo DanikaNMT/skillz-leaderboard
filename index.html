@@ -357,7 +357,7 @@
 <script>
   var players = [];
   var nextId = 1;
-  var pointValues = [10000, 100, 5, 1];
+  var pointValues = [10000, 1000, 100, 5, 1];
   var editingId = null;
   var STORAGE_KEY = 'skillz-ranglijst-data';
 
@@ -385,6 +385,71 @@
 
   function fmt(n){
     return n.toLocaleString('nl-BE');
+  }
+
+  var audioCtx = null;
+  function getAudioCtx(){
+    if(!audioCtx){
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if(audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playTone(ctx, freq, startTime, duration, type, gainPeak){
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(gainPeak || 0.22, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.02);
+  }
+
+  function playDingSound(){
+    var ctx = getAudioCtx();
+    if(!ctx) return;
+    try{
+      var now = ctx.currentTime;
+      var notes = [880.00, 1108.73, 1318.51];
+      var t = now;
+      notes.forEach(function(freq){
+        playTone(ctx, freq, t, 0.18, 'sine', 0.25);
+        t += 0.11;
+      });
+    }catch(e){}
+  }
+
+  function playDumSound(){
+    var ctx = getAudioCtx();
+    if(!ctx) return;
+    try{
+      var now = ctx.currentTime;
+      playTone(ctx, 196.00, now, 0.22, 'triangle', 0.28);
+      playTone(ctx, 174.61, now + 0.26, 0.22, 'triangle', 0.28);
+
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var start = now + 0.52;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(155.56, start);
+      osc.frequency.exponentialRampToValueAtTime(110.00, start + 0.6);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.28, start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.65);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.7);
+    }catch(e){}
   }
 
   function render(){
@@ -516,6 +581,11 @@
     p.score += delta;
     saveState();
     render();
+    if(delta > 0){
+      playDingSound();
+    } else {
+      playDumSound();
+    }
     var scoreEl = document.getElementById('score-' + id);
     if(scoreEl){
       var cls = delta > 0 ? 'flash-up' : 'flash-down';
